@@ -17,7 +17,7 @@
      // Checking for file availability
      std::wifstream wif(filePath.c_str());
      if (!wif.is_open()) {
-         throw std::runtime_error("Файл не найден: " + filePath);
+         throw std::runtime_error("The file was not found: " + filePath);
      }
      //wif.close();
      // Setting the UTF 8 locale

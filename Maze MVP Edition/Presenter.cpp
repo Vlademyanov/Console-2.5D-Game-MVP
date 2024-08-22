@@ -77,59 +77,59 @@ void Presenter::handleUserInput(const std::set<char>& keys, Player& player, Text
 }
 void Presenter::startGame() {
 
-	// Объявляем параметры экрана
+	// Declaring the screen parameters
 	view.setWidth(960);
 	view.setHeight(227);
 
-	// Устанавливаем пользовательские настройки
-	player.setFOV(M_PI / 2);			// Угол обзора
-	player.setDepthDisplay(24.0f);		// Глубина прорисовки
-	player.setCameraSpeed(5.5f);		// Скорость вращения камеры (чувствительность)
+	// Setting user settings
+	player.setFOV(M_PI / 2);			// Viewing angle
+	player.setDepthDisplay(24.0f);		// Drawing depth
+	player.setCameraSpeed(5.5f);		// Camera rotation speed (sensitivity)
 	player.setJump(view.getWidth() / 32);
 	player.setJumpFringle(view.getHeight() / 32);
 
 
-	// Инициализируем экран
+	// Initializing the screen
 	view.initScreen();
 
 	Texture texture;
 	Texture world = texture.getTexture("WORLD");
 	Texture win = texture.getTexture("WIN");
 
-	// Начальные временные метки
+	// Initial timestamps
 	auto firstTime = std::chrono::system_clock::now();
 	auto secondTime = std::chrono::system_clock::now();
 
 	/*
-		ГЛАВНЫЙ ЦИКЛ
+		THE MAIN CYCLE
 	*/
 	while (1) {
-		// Замеряем количество кадров секунду
+		// We measure the number of frames per second
 		firstTime = std::chrono::system_clock::now();
 		std::chrono::duration<float> deltaTime = firstTime - secondTime;
 		secondTime = firstTime;
-		// Передаем FPS для Model
+		// Transmitting FPS for Model
 		view.setFPS(deltaTime.count());
 
-		// Пользовательский ввод
+		// User input
 		handleUserInput(view.getUserInput(), player, world);
 
-		///*
-		//	МАТЕМАТИКА ДЛЯ ОТОБРАЖЕНИЯ
-		//*/
+		/*
+			MATHEMATICS FOR DISPLAY
+		*/
 		for (int x = 0; x < view.getWidth(); x++)
 		{
 			float angleBite = (player.getDirectionView() - player.getFOV() / 2.0f) + ((float)x / (float)view.getWidth()) * player.getFOV();
 			float stepSize = 0.01f;		  								
-			float distanceWall = 0.0f;		// Дистанция до стены
-			float distanceSlab = 0.0f;		// Дистанция до полублока
-			bool isWall = false;			// Попадание в стену
-			bool isSlab = false;			// Попадание в полублок
-			bool isFringe = false;			// Попадание в грань
-			bool isFringeSlab = false;		// Попадание в грань полублока
+			float distanceWall = 0.0f;		// Distance to wall
+			float distanceSlab = 0.0f;		// Distance to half - block
+			bool isWall = false;			// Hitting wall
+			bool isSlab = false;			// Hitting half-block
+			bool isFringe = false;			// Hitting fringe
+			bool isFringeSlab = false;		// Hitting the fringe of the half-block
 
-			float unitX = sinf(angleBite);	// Сост. единичного ветора по X для движения вдоль него при шагах
-			float unitY = cosf(angleBite);	// Сост. единичного ветора по Y для движения вдоль него при шагах
+			float unitX = sinf(angleBite);	// Component of the unit vector in X for movement along it at steps
+			float unitY = cosf(angleBite);	// Component of the unit vector in Y for movement along it at steps
 
 			while (!isWall && distanceWall < player.getDepthDisplay())
 			{
@@ -199,13 +199,15 @@ void Presenter::startGame() {
 				}
 			}
 
-			/*ОТОБРАЖЕНИЕ*/
-			// Длина до потолка и пола 
+			/*
+				DISPLAY
+			*/
+			// Length to sky and ground
 			int sky = (view.getHeight() / 2.0) - view.getHeight() / (distanceSlab);
 			int ground = view.getHeight() - sky;
 			sky = (view.getHeight() / 2.0) - view.getHeight() / (distanceWall);
 
-			// Подъём камеры при перелазании
+			// Lifting the camera when climbing
 			int skySlab = sky + player.getJump();
 			if (world.texture[(int)((int)player.getPosition().x * world.textureSize.x + (int)player.getPosition().y)] == '2') {
 				while (sky < skySlab)
@@ -241,13 +243,13 @@ void Presenter::startGame() {
 			if (isFringeSlab)												ShadeSlab = '!';
 
 			for (int y = 0; y < view.getHeight(); y++) {
-				if (y <= sky) view.setCharPixel(y, x, ShadeStar);																					// Небо
-				else if (y > sky && y <= view.getHeight() / 2.0)																					// Стена
+				if (y <= sky) view.setCharPixel(y, x, ShadeStar);																					// Sky
+				else if (y > sky && y <= view.getHeight() / 2.0)																					// Wall
 					view.setCharPixel(y, x, ShadeWall);
-				else if (y < (view.getHeight() + player.getJumpFringle()) / 2.0 && y >(view.getHeight() - player.getJumpFringle()) / 2.0			// Ребро полублока
+				else if (y < (view.getHeight() + player.getJumpFringle()) / 2.0 && y >(view.getHeight() - player.getJumpFringle()) / 2.0			// Edge of the half-block
 					&& world.texture[(int)(player.getPosition().y + (int)player.getPosition().x * world.textureSize.x)] != '2')
 					view.setCharPixel(y, x, ShadeFringle);
-				else if (y > view.getHeight() / 2.0 && y <= ground - 1) {																			// Полублок
+				else if (y > view.getHeight() / 2.0 && y <= ground - 1) {																			// Half-block
 					if (world.texture[(int)player.getPosition().x * world.textureSize.x + (int)player.getPosition().y] == '2')
 						ground = view.getHeight() - sky + 2 * player.getJump();
 						view.setCharPixel(y, x, ShadeWall);
@@ -255,8 +257,8 @@ void Presenter::startGame() {
 						view.setCharPixel(y, x, ShadeSlab);
 
 				}
-				else if (y > ground - 1 && y <= ground) view.setCharPixel(y, x, ShadeFringle);														// Плинтус
-				else {																																// Земля
+				else if (y > ground - 1 && y <= ground) view.setCharPixel(y, x, ShadeFringle);														// Baseboard
+				else {																																// Ground
 					float distantionGround = 1.0f - ((y - view.getHeight() / 2.0f) / (view.getHeight() / 2.0f));
 					if (distantionGround < 0.49)		ShadeWall = 'G';																			// 0.66			
 					else if (distantionGround < 0.66)	ShadeWall = 'C';																			// 0.745		
@@ -266,9 +268,9 @@ void Presenter::startGame() {
 					view.setCharPixel(y, x, ShadeWall);
 				}
 				if (world.texture[(int)player.getPosition().x * world.textureSize.x + (int)player.getPosition().y] == '2') {
-					if (y < (view.getHeight() + player.getJumpFringle() / 2) / 2.0 + player.getJump() && y >(view.getHeight() - player.getJumpFringle() / 2) / 2.0 + player.getJump()) view.setCharPixel(y, x, ShadeFringle);	// Ребро полублока
-					if (y > (view.getHeight() + player.getJumpFringle() / 2) / 2.0 + player.getJump() - 1 && y <= ground) view.setCharPixel(y, x, ShadeClimb);																	// Полублок
-					if (y > ground - 1 && y <= ground) view.setCharPixel(y, x, ShadeFringle);																																	// Плинтус
+					if (y < (view.getHeight() + player.getJumpFringle() / 2) / 2.0 + player.getJump() && y >(view.getHeight() - player.getJumpFringle() / 2) / 2.0 + player.getJump()) view.setCharPixel(y, x, ShadeFringle);	// Edge of the half-block
+					if (y > (view.getHeight() + player.getJumpFringle() / 2) / 2.0 + player.getJump() - 1 && y <= ground) view.setCharPixel(y, x, ShadeClimb);																	// Half-block
+					if (y > ground - 1 && y <= ground) view.setCharPixel(y, x, ShadeFringle);																																	// Half-block
 				}
 			}
 		}
